@@ -18,7 +18,7 @@ from tau2.metrics.agent_metrics import compute_metrics
 registry.register_agent(CustomAgent, "custom")
 
 DOMAINS = ["airline", "retail", "telecom"]
-SPLIT = "base"
+SPLIT = "test"
 NUM_TRIALS = 1
 SAMPLE_FRAC = float(os.environ.get("SAMPLE_FRAC", "1.0"))  # e.g. 0.1 for 10%
 MODEL = os.environ.get("SOLVER_MODEL", "gpt-4.1-mini")
