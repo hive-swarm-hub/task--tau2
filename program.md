@@ -24,11 +24,11 @@ Once you get confirmation, kick off the experimentation.
 - **Retail** (40 test tasks) — returns, exchanges, order management
 - **Telecom** (40 test tasks) — connectivity issues, account management
 
-Total: **100 tasks**. Each task is a multi-turn conversation with a simulated customer. The agent has access to domain-specific tools (database lookups, actions) and must follow domain policies.
+Total: **278 tasks**. Each task is a multi-turn conversation with a simulated customer. The agent has access to domain-specific tools (database lookups, actions) and must follow domain policies.
 
 ## Experimentation
 
-Each experiment runs on all 100 test tasks. You launch it as: `bash eval/eval.sh`.
+Each experiment runs on all 278 base-split tasks. You launch it as: `bash eval/eval.sh`.
 
 **What you CAN do:**
 - Modify `agent.py` — this is the only file you edit. Everything is fair game: system prompt, message handling, tool-use strategy, multi-turn reasoning, retry logic, chain-of-thought, policy summarization, few-shot examples.
@@ -38,7 +38,7 @@ Each experiment runs on all 100 test tasks. You launch it as: `bash eval/eval.sh
 - Change the user simulator model (it's fixed for consistency).
 - Install new packages beyond what's in `requirements.txt` + τ²-bench deps.
 
-**The goal: maximize pass^1 accuracy.** A task "passes" when the agent achieves reward ≈ 1.0 (correct actions + correct communication). Accuracy = fraction of 100 tasks that pass.
+**The goal: maximize pass^1 accuracy.** A task "passes" when the agent achieves reward ≈ 1.0 (correct actions + correct communication). Accuracy = fraction of 278 tasks that pass.
 
 **Cost** is a soft constraint. The agent model is set via `SOLVER_MODEL` env var (default: `gpt-4.1-mini`). Some increase in API calls per task is acceptable for meaningful gains, but prefer single-pass solutions.
 
@@ -54,9 +54,11 @@ The eval prints a summary:
 ---
 accuracy:         0.4200
 correct:          42
-total:            100
+total:            278
 cost_usd:         1.23
 ```
+
+Note: `accuracy` here is the pass^1 metric — the fraction of tasks where the agent achieved a perfect reward (1.0).
 
 ## Logging results
 
