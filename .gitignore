@@ -1,0 +1,5 @@
+tau2-bench/
+run.log
+results.tsv
+__pycache__/
+*.pyc
