@@ -6,6 +6,7 @@ The agent receives customer messages and domain tools, and must follow the domai
 
 import json
 import os
+import time
 
 from litellm import completion
 
@@ -25,27 +26,23 @@ from tau2.environment.tool import Tool
 # ── PROMPT (the main lever for improving performance) ─────────────────────────
 
 INSTRUCTIONS = """
-You are a customer service agent. You MUST follow the <policy> exactly. The policy is your sole source of truth — never invent rules, procedures, or information not in the policy or provided by the user.
+You are a customer service agent. You MUST follow the <policy> below as your sole source of truth.
 
-## Critical rules
-1. Each turn: EITHER send a message to the user OR make a tool call. NEVER both at the same time.
-2. Only make ONE tool call per turn.
-3. Before any action that modifies the database (booking, modifying, cancelling), you MUST:
-   a. Verify all policy preconditions are met (eligibility, rules, restrictions).
-   b. List the exact action details to the user and get explicit confirmation (the word "yes").
-   c. Only then make the tool call.
-4. The APIs do NOT enforce policy rules — YOU must check them before calling.
-5. If a request is against policy, deny it and explain why.
-6. Transfer to a human agent ONLY if the request cannot be handled within the scope of your actions. To transfer: first call transfer_to_human_agents, then send "YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON."
-7. Do not proactively offer compensation unless the user explicitly asks.
+## Rules
+1. Each turn: EITHER send a message to the user OR make exactly one tool call. Never both.
+2. Before any database-modifying action (book, modify, cancel), verify all policy preconditions are met, present the details to the user, and get explicit confirmation before calling the API.
+3. The APIs do NOT enforce policy rules — YOU must check them before calling.
+4. If a request violates policy, deny it and explain why.
+5. Transfer to a human agent ONLY when the request is outside the scope of your capabilities. To transfer: first call transfer_to_human_agents, then say "YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON."
+6. Do not offer compensation unless the user explicitly asks for it.
+7. Never invent information, rules, or procedures not in the policy.
 
-## Approach
-- First identify the user (get user ID).
-- Gather all needed information before taking action.
-- Check every policy rule that applies to the situation.
-- When the user's request involves multiple steps, handle them one at a time.
-- Be precise with tool arguments — use exact IDs, dates, and values from prior tool results.
-- Keep responses concise and focused.
+## How to handle requests
+- Identify the user first (get their user ID).
+- Gather all necessary information using tools before deciding on an action.
+- Carefully read and apply every relevant policy rule to the current situation.
+- Use exact IDs, dates, values, and field names from tool results in your tool calls.
+- Handle one action at a time. Be concise.
 """.strip()
 
 SYSTEM_TEMPLATE = """
@@ -68,7 +65,7 @@ def to_api_messages(messages):
         elif isinstance(m, UserMessage):
             out.append({"role": "user", "content": m.content})
         elif isinstance(m, AssistantMessage):
-            d = {"role": "assistant", "content": m.content}
+            d = {"role": "assistant", "content": m.content or ""}
             if m.is_tool_call():
                 d["tool_calls"] = [
                     {
@@ -80,7 +77,8 @@ def to_api_messages(messages):
                 ]
             out.append(d)
         elif isinstance(m, ToolMessage):
-            out.append({"role": "tool", "content": m.content, "tool_call_id": m.id})
+            content = m.content if m.content else ""
+            out.append({"role": "tool", "content": content, "tool_call_id": m.id})
     return out
 
 
@@ -98,12 +96,14 @@ def parse_response(choice):
         ]
     return AssistantMessage(
         role="assistant",
-        content=choice.content,
+        content=choice.content or "",
         tool_calls=tool_calls or None,
     )
 
 
 # ── AGENT ─────────────────────────────────────────────────────────────────────
+
+MAX_RETRIES = 3
 
 class CustomAgent(LLMAgent):
     """Self-contained customer service agent.
@@ -138,14 +138,22 @@ class CustomAgent(LLMAgent):
         api_messages = to_api_messages(state.system_messages + state.messages)
         api_tools = [t.openai_schema for t in self.tools] if self.tools else None
 
-        # 3. Call LLM
-        response = completion(
-            model=self.llm,
-            messages=api_messages,
-            tools=api_tools,
-            tool_choice="auto" if api_tools else None,
-            **self.llm_args,
-        )
+        # 3. Call LLM with retry logic
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = completion(
+                    model=self.llm,
+                    messages=api_messages,
+                    tools=api_tools,
+                    tool_choice="auto" if api_tools else None,
+                    **self.llm_args,
+                )
+                break
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise
 
         # 4. Parse response
         assistant_msg = parse_response(response.choices[0].message)
