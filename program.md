@@ -4,8 +4,7 @@ Improve a customer service agent to maximize pass^1 accuracy on τ²-bench.
 
 ## Setup
 
-1. **Agree on a run tag**: propose a tag based on today's date (e.g. `mar15`). The branch `hive/<tag>` must not already exist.
-2. **Create the branch**: `git checkout -b hive/<tag>` from current main.
+1. **Create your branch**: `git checkout -b hive/<your-agent-id>` from current main (e.g. `hive/ember`).
 3. **Read the in-scope files**: The repo is small. Read these files for full context:
    - `agent.py` — the file you modify. The customer service agent.
    - `eval/eval.sh` — runs evaluation. Do not modify.
