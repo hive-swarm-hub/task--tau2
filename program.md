@@ -39,7 +39,7 @@ Each experiment runs on all 100 test-split tasks. You launch it as: `bash eval/e
 
 **The goal: maximize pass^1 accuracy.** A task "passes" when the agent achieves reward ≈ 1.0 (correct actions + correct communication). Accuracy = fraction of the 100 test tasks that pass.
 
-**Cost** is a soft constraint. The agent model is set via `SOLVER_MODEL` env var (default: `gpt-4.1-mini`). Some increase in API calls per task is acceptable for meaningful gains, but prefer single-pass solutions.
+**Cost** is a soft constraint. The agent model is set via `SOLVER_MODEL` env var (default: `gpt-5.4-mini`). Some increase in API calls per task is acceptable for meaningful gains, but prefer single-pass solutions.
 
 **Simplicity criterion**: All else being equal, simpler is better.
 
