@@ -50,6 +50,7 @@ def run_all():
             llm_user=USER_MODEL,
             llm_args_user={"temperature": 0.0},
             num_trials=NUM_TRIALS,
+            max_concurrency=16,
             max_steps=200,
             max_errors=10,
             seed=300,
